@@ -10,11 +10,11 @@ import (
 )
 
 type ChatHandler struct {
-	authService *chatService.ChatService
+	chatService *chatService.ChatService
 }
 
-func NewChatHandler(authService *chatService.ChatService) *ChatHandler {
-	return &ChatHandler{authService: authService}
+func NewChatHandler(chatService *chatService.ChatService) *ChatHandler {
+	return &ChatHandler{chatService: chatService}
 }
 
 func (h *ChatHandler) ChatHandler(ctx *fiber.Ctx) error {
@@ -28,6 +28,14 @@ func (h *ChatHandler) ChatHandler(ctx *fiber.Ctx) error {
 	}
 
 	ctx.Locals("requestData", reqData)
-	err = h.authService.ChatService(ctx)
+	err = h.chatService.ChatService(ctx)
+	return ctx.Context().Err()
+}
+
+func (h *ChatHandler) FundamentalHandler(ctx *fiber.Ctx) error {
+
+	stockSymbol := ctx.Query("stock")
+	ctx.Locals("stockSymbol", stockSymbol)
+	_ = h.chatService.FetchFundamentals(ctx)
 	return ctx.Context().Err()
 }
