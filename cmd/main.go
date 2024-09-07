@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	router "nexbit/internal/router/v1"
 	chatService "nexbit/internal/service"
@@ -10,6 +11,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 
+	externalFmpApiClient "nexbit/external/fmp"
 	externalOpenAiClient "nexbit/external/openai"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,9 +33,11 @@ func main() {
 	openaiClient := openai.NewClient("s")
 
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
+	httpClient := externalFmpApiClient.NewHTTPClient(5 * time.Second)
+	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
 
-	authService := chatService.NewChatService(externalChatGptClient)
-	router.ChatRouter(app, authService)
+	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient)
+	router.ChatRouter(app, chatService)
 
 	if err := app.Listen(":3002"); err != nil {
 		fmt.Println("Error starting server:", err)
