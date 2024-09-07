@@ -1,51 +1,15 @@
 package util
 
-type Holding struct {
-	TradingSymbol      string  `json:"tradingsymbol"`
-	Exchange           string  `json:"exchange"`
-	ISIN               string  `json:"isin"`
-	T1Quantity         int     `json:"t1quantity"`
-	RealisedQuantity   int     `json:"realisedquantity"`
-	Quantity           int     `json:"quantity"`
-	AuthorisedQuantity int     `json:"authorisedquantity"`
-	Product            string  `json:"product"`
-	CollateralQuantity *int    `json:"collateralquantity"`
-	CollateralType     *string `json:"collateraltype"`
-	Haircut            float64 `json:"haircut"`
-	AveragePrice       float64 `json:"averageprice"`
-	LTP                float64 `json:"ltp"`
-	SymbolToken        string  `json:"symboltoken"`
-	Close              float64 `json:"close"`
-	ProfitAndLoss      float64 `json:"profitandloss"`
-	PNLPercentage      float64 `json:"pnlpercentage"`
-}
+import (
+	models "nexbit/models"
+)
 
-type TotalHolding struct {
-	TotalHoldingValue  float64 `json:"totalholdingvalue"`
-	TotalInvValue      float64 `json:"totalinvvalue"`
-	TotalProfitAndLoss float64 `json:"totalprofitandloss"`
-	TotalPNLPercentage float64 `json:"totalpnlpercentage"`
-}
-
-type Data struct {
-	Holdings     []Holding    `json:"holdings"`
-	TotalHolding TotalHolding `json:"totalholding"`
-}
-
-type Response struct {
-	Status    bool   `json:"status"`
-	Message   string `json:"message"`
-	ErrorCode string `json:"errorcode"`
-	Data      Data   `json:"data"`
-}
-
-// Define the constant JSON response
-var ConstantResponse = Response{
+var ConstantResponse = models.PortfolioResponse{
 	Status:    true,
 	Message:   "SUCCESS",
 	ErrorCode: "",
-	Data: Data{
-		Holdings: []Holding{
+	Data: models.PortfolioData{
+		Holdings: []models.Holding{
 			{
 				TradingSymbol:      "AAPL",
 				Exchange:           "NASDAQ",
@@ -180,7 +144,7 @@ var ConstantResponse = Response{
 				PNLPercentage:      15.63,
 			},
 		},
-		TotalHolding: TotalHolding{
+		TotalHolding: models.TotalHolding{
 			TotalHoldingValue:  21550.25,
 			TotalInvValue:      19900.00,
 			TotalProfitAndLoss: 1650.25,
