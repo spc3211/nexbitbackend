@@ -41,7 +41,8 @@ type PortfolioResponse struct {
 	Message   string 		  `json:"message"`
 	ErrorCode string 		  `json:"errorcode"`
 	Data      PortfolioData   `json:"data"`
-=======
+}
+
 type IncomeStatementResponse struct {
 	CalendarYear      string `json:"calendarYear"`
 	Revenue           int64  `json:"revenue"`
