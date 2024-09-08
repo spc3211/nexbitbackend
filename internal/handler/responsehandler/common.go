@@ -1,4 +1,4 @@
-package models
+package responsehandler
 
 import (
 	"encoding/json"
