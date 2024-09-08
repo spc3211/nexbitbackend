@@ -76,3 +76,17 @@ type FundamentalDataResponse struct {
 	IncomeStatementResponse []*IncomeStatementResponse `json:"income_statement"`
 	StockPrice              []*StockPrice              `json:"stock_prices"`
 }
+
+type NewsDataResponse struct {
+	Results []NewsResult `json:"results"`
+}
+
+type NewsResult struct {
+	Insights []NewsDataInsight `json:"insights"`
+}
+
+type NewsDataInsight struct {
+	Ticker             string `json:"ticker"`
+	Sentiment          string `json:"sentiment"`
+	SentimentReasoning string `json:"sentiment_reasoning"`
+}

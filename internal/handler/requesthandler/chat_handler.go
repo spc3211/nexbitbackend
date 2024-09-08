@@ -39,3 +39,10 @@ func (h *ChatHandler) FundamentalHandler(ctx *fiber.Ctx) error {
 	_ = h.chatService.FetchFundamentals(ctx)
 	return ctx.Context().Err()
 }
+
+func (h *ChatHandler) NewsInsightsHandler(ctx *fiber.Ctx) error {
+	stockSymbol := ctx.Query("stock")
+	ctx.Locals("stockSymbol", stockSymbol)
+	_ = h.chatService.FetchNewsInsights(ctx)
+	return ctx.Context().Err()
+}
