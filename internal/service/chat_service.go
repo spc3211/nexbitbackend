@@ -4,6 +4,7 @@ import (
 	"fmt"
 	fmpApiClient "nexbit/external/fmp"
 	openAiClient "nexbit/external/openai"
+	polygonApiClient "nexbit/external/polygon"
 	"nexbit/util"
 
 	models "nexbit/models"
@@ -12,14 +13,16 @@ import (
 )
 
 type ChatService struct {
-	openAiClient *openAiClient.OpenAiClient
-	fmpApiClient *fmpApiClient.FmpApiClient
+	openAiClient     *openAiClient.OpenAiClient
+	fmpApiClient     *fmpApiClient.FmpApiClient
+	polygonApiClient *polygonApiClient.PolygonApiClient
 }
 
-func NewChatService(openAiClient *openAiClient.OpenAiClient, fmpApiClient *fmpApiClient.FmpApiClient) *ChatService {
+func NewChatService(openAiClient *openAiClient.OpenAiClient, fmpApiClient *fmpApiClient.FmpApiClient, polygonApiClient *polygonApiClient.PolygonApiClient) *ChatService {
 	return &ChatService{
-		openAiClient: openAiClient,
-		fmpApiClient: fmpApiClient,
+		openAiClient:     openAiClient,
+		fmpApiClient:     fmpApiClient,
+		polygonApiClient: polygonApiClient,
 	}
 }
 
@@ -65,4 +68,16 @@ func (s *ChatService) FetchFundamentals(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"stock": finalRespnse,
 	})
+}
+
+func (s *ChatService) FetchNewsInsights(ctx *fiber.Ctx) error {
+	stockSymbol := ctx.Locals("stockSymbol").(string)
+
+	insights, err := s.polygonApiClient.FetchNewsInsights(ctx.Context(), stockSymbol)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+		return err
+	}
+	
+	return ctx.JSON(insights)
 }

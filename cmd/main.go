@@ -10,9 +10,10 @@ import (
 	logger "nexbit/util"
 
 	openai "github.com/sashabaranov/go-openai"
-
+	external "nexbit/external"
 	externalFmpApiClient "nexbit/external/fmp"
 	externalOpenAiClient "nexbit/external/openai"
+	externalPolygonApiClient "nexbit/external/polygon"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -33,10 +34,11 @@ func main() {
 	openaiClient := openai.NewClient("s")
 
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
-	httpClient := externalFmpApiClient.NewHTTPClient(5 * time.Second)
+	httpClient := external.NewHTTPClient(5 * time.Second)
 	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
+	externalPolygonApiClient := externalPolygonApiClient.NewAPIClient(httpClient)
 
-	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient)
+	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient, externalPolygonApiClient)
 	router.ChatRouter(app, chatService)
 
 	if err := app.Listen(":3002"); err != nil {

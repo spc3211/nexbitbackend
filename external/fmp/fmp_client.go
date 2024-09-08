@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	models "nexbit/models"
+	external "nexbit/external"
 )
 
 const API_TOKEN = "xpL651iwSgtcDTAYp6iCHsTL0NjmTEfg"
 const BASE_URL = "https://financialmodelingprep.com/api/v3/"
 
 type FmpApiClient struct {
-	httpClient *HTTPClient
+	httpClient *external.HTTPClient
 }
 
-func NewAPIClient(httpClient *HTTPClient) *FmpApiClient {
+func NewAPIClient(httpClient *external.HTTPClient) *FmpApiClient {
 	return &FmpApiClient{
 		httpClient: httpClient,
 	}
