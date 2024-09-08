@@ -1,4 +1,4 @@
-package handler
+package requesthandler
 
 import (
 	chatService "nexbit/internal/service"
@@ -17,7 +17,7 @@ func NewChatHandler(chatService *chatService.ChatService) *ChatHandler {
 	return &ChatHandler{chatService: chatService}
 }
 
-func (h *ChatHandler) ChatHandler(ctx *fiber.Ctx) error {
+func (h *ChatHandler) UserChatHandler(ctx *fiber.Ctx) error {
 
 	var reqData models.SubmitChatRequest
 
