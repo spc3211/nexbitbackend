@@ -6,6 +6,7 @@ import (
 	"fmt"
 	external "nexbit/external"
 	models "nexbit/models"
+	util "nexbit/util"
 )
 
 const API_TOKEN = "xpL651iwSgtcDTAYp6iCHsTL0NjmTEfg"
@@ -61,6 +62,25 @@ func (c *FmpApiClient) FetchBalanceSheet(ctx context.Context, stockSymbol string
 
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *FmpApiClient) FetchFinancialsRatio(ctx context.Context, stockSymbol string, duration string) ([]*models.FinancialRatiosResponse, error) {
+	url := fmt.Sprintf("%sratios/%s?period=%s&apikey=%s", BASE_URL, stockSymbol, duration, API_TOKEN)
+	data, err := c.httpClient.Get(ctx, url, nil)
+	var resp []*models.FinancialRatiosResponse
+	if err != nil {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+	}
+
+	for _, item := range resp {
+		util.RoundFloatFields(item)
 	}
 
 	return resp, nil

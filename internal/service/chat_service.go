@@ -60,10 +60,17 @@ func (s *ChatService) FetchFundamentals(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	financialRationResponse, err := s.fmpApiClient.FetchFinancialsRatio(ctx.Context(), stockSymbol, "annual")
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+		return err
+	}
+
 	finalRespnse := models.FundamentalDataResponse{
 		BalanceSheetResponse:    balanceSheetResponse,
 		IncomeStatementResponse: incomeStatementResponse,
 		CashFlowResponse:        cashFlowResponse,
+		FinancialRatiosResponse: financialRationResponse,
 	}
 
 	return ctx.JSON(fiber.Map{

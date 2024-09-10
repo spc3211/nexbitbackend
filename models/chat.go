@@ -58,6 +58,15 @@ type BalanceSheetResponse struct {
 	TotalLiabilities int64  `json:"totalLiabilities"`
 }
 
+type FinancialRatiosResponse struct {
+	CalendarYear       string  `json:"calendarYear"`
+	PriceEarningsRatio float64 `json:"priceEarningsRatio"`
+	DebtEquityRatio    float64 `json:"debtEquityRatio"`
+	ReturnOnEquity     float64 `json:"returnOnEquity"`
+	CurrentRatio       float64 `json:"currentRatio"`
+	GrossProfitMargin  float64 `json:"grossProfitMargin"`
+}
+
 type CashFlowResponse struct {
 	CalendarYear      string `json:"calendarYear"`
 	OperatingCashFlow int64  `json:"operatingCashFlow"`
@@ -81,6 +90,7 @@ type FundamentalDataResponse struct {
 	BalanceSheetResponse    []*BalanceSheetResponse    `json:"balance_sheet"`
 	IncomeStatementResponse []*IncomeStatementResponse `json:"income_statement"`
 	CashFlowResponse        []*CashFlowResponse        `json:"Cash_flow"`
+	FinancialRatiosResponse []*FinancialRatiosResponse `json:"financial_ratios"`
 }
 
 type NewsDataResponse struct {
