@@ -37,10 +37,10 @@ type PortfolioData struct {
 }
 
 type PortfolioResponse struct {
-	Status    bool   		  `json:"status"`
-	Message   string 		  `json:"message"`
-	ErrorCode string 		  `json:"errorcode"`
-	Data      PortfolioData   `json:"data"`
+	Status    bool          `json:"status"`
+	Message   string        `json:"message"`
+	ErrorCode string        `json:"errorcode"`
+	Data      PortfolioData `json:"data"`
 }
 
 type IncomeStatementResponse struct {
@@ -53,6 +53,12 @@ type IncomeStatementResponse struct {
 }
 
 type BalanceSheetResponse struct {
+	CalendarYear     string `json:"calendarYear"`
+	TotalAssets      int64  `json:"totalAssets"`
+	TotalLiabilities int64  `json:"totalLiabilities"`
+}
+
+type CashFlowResponse struct {
 	CalendarYear      string `json:"calendarYear"`
 	OperatingCashFlow int64  `json:"operatingCashFlow"`
 	Inventory         int64  `json:"inventory"`
@@ -74,7 +80,7 @@ type StockPriceResponse struct {
 type FundamentalDataResponse struct {
 	BalanceSheetResponse    []*BalanceSheetResponse    `json:"balance_sheet"`
 	IncomeStatementResponse []*IncomeStatementResponse `json:"income_statement"`
-	StockPrice              []*StockPrice              `json:"stock_prices"`
+	CashFlowResponse        []*CashFlowResponse        `json:"Cash_flow"`
 }
 
 type NewsDataResponse struct {

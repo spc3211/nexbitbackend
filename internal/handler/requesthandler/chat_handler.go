@@ -29,15 +29,15 @@ func (h *ChatHandler) UserChatHandler(ctx *fiber.Ctx) error {
 
 	ctx.Locals("requestData", reqData)
 	err = h.chatService.ChatService(ctx)
-	return ctx.Context().Err()
+	return err
 }
 
 func (h *ChatHandler) FundamentalHandler(ctx *fiber.Ctx) error {
 
 	stockSymbol := ctx.Query("stock")
 	ctx.Locals("stockSymbol", stockSymbol)
-	_ = h.chatService.FetchFundamentals(ctx)
-	return ctx.Context().Err()
+	err := h.chatService.FetchFundamentals(ctx)
+	return err
 }
 
 func (h *ChatHandler) NewsInsightsHandler(ctx *fiber.Ctx) error {

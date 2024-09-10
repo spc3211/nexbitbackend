@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	models "nexbit/models"
 	external "nexbit/external"
+	models "nexbit/models"
 )
 
 const API_TOKEN = "xpL651iwSgtcDTAYp6iCHsTL0NjmTEfg"
@@ -36,8 +36,23 @@ func (c *FmpApiClient) FetchIncomeStatementAPI(ctx context.Context, stockSymbol 
 	return resp, nil
 }
 
-func (c *FmpApiClient) FetchBalanceSheet(ctx context.Context, stockSymbol string, duration string) ([]*models.BalanceSheetResponse, error) {
+func (c *FmpApiClient) FetchCashFlowStatement(ctx context.Context, stockSymbol string, duration string) ([]*models.CashFlowResponse, error) {
 	url := fmt.Sprintf("%scash-flow-statement/%s?period=%s&apikey=%s", BASE_URL, stockSymbol, duration, API_TOKEN)
+	data, err := c.httpClient.Get(ctx, url, nil)
+	var resp []*models.CashFlowResponse
+	if err != nil {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *FmpApiClient) FetchBalanceSheet(ctx context.Context, stockSymbol string, duration string) ([]*models.BalanceSheetResponse, error) {
+	url := fmt.Sprintf("%sbalance-sheet-statement/%s?period=%s&apikey=%s", BASE_URL, stockSymbol, duration, API_TOKEN)
 	data, err := c.httpClient.Get(ctx, url, nil)
 	var resp []*models.BalanceSheetResponse
 	if err != nil {
