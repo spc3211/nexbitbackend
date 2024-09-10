@@ -83,10 +83,12 @@ type NewsDataResponse struct {
 
 type NewsResult struct {
 	Insights []NewsDataInsight `json:"insights"`
+	PublishedUtc string `json:"published_utc"`
 }
 
 type NewsDataInsight struct {
 	Ticker             string `json:"ticker"`
 	Sentiment          string `json:"sentiment"`
 	SentimentReasoning string `json:"sentiment_reasoning"`
+	PublishedDate      string `json:"published_date"`
 }

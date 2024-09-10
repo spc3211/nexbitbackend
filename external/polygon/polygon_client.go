@@ -3,12 +3,10 @@ package polygon
 import (
 	"context"
 	"encoding/json"
-	"time"
 	"fmt"
-	models "nexbit/models"
 	external "nexbit/external"
+	models "nexbit/models"
 )
-
 
 const API_TOKEN = "6oGHs7F1pbQLMyy5p8i6ST5RJzUEeIAL"
 const BASE_URL = "https://api.polygon.io/v2/reference/"
@@ -24,9 +22,10 @@ func NewAPIClient(httpClient *external.HTTPClient) *PolygonApiClient {
 }
 
 func (c *PolygonApiClient) FetchNewsInsights(ctx context.Context, ticker string) ([]models.NewsDataInsight, error) {
-	url := fmt.Sprintf("%snews?ticker=%s&apiKey=%s&published_utc.gt=%s&order=desc&limit=20&sort=published_utc", BASE_URL,
-		ticker, API_TOKEN, time.Now().UTC().AddDate(0, -1, 0).Format(time.RFC3339))
+	url := fmt.Sprintf("%snews?ticker=%s&apiKey=%s&published_utc.gt=2024-01-01T04:00:00Z&published_utc.lt=2024-04-01T04:00:00Z&order=desc&limit=20&sort=published_utc", BASE_URL,
+		ticker, API_TOKEN)
 
+	fmt.Println(url)
 	data, err := c.httpClient.Get(ctx, url, nil)
 
 	if err != nil {
@@ -44,9 +43,18 @@ func (c *PolygonApiClient) FetchNewsInsights(ctx context.Context, ticker string)
 
 	var filteredInsights []models.NewsDataInsight
 	for _, result := range response.Results {
+		publishedDate := result.PublishedUtc
+		fmt.Println(publishedDate)
 		for _, insight := range result.Insights {
 			if insight.Ticker == ticker {
-				filteredInsights = append(filteredInsights, insight)
+
+				filteredInsight := models.NewsDataInsight{
+					Ticker:             insight.Ticker,
+					Sentiment:          insight.Sentiment,
+					SentimentReasoning: insight.SentimentReasoning,
+					PublishedDate:      publishedDate,
+				}
+				filteredInsights = append(filteredInsights, filteredInsight)
 			}
 		}
 	}
