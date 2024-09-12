@@ -13,7 +13,7 @@ import (
 	external "nexbit/external"
 	externalFmpApiClient "nexbit/external/fmp"
 	externalOpenAiClient "nexbit/external/openai"
-	externalPolygonApiClient "nexbit/external/polygon"
+	externalNewsClient "nexbit/external/news"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -36,9 +36,9 @@ func main() {
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
 	httpClient := external.NewHTTPClient(5 * time.Second)
 	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
-	externalPolygonApiClient := externalPolygonApiClient.NewAPIClient(httpClient)
+	externalNewsApiClient := externalNewsClient.NewAPIClient(httpClient)
 
-	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient, externalPolygonApiClient)
+	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient, externalNewsApiClient)
 	router.ChatRouter(app, chatService)
 
 	if err := app.Listen(":3002"); err != nil {
