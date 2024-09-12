@@ -96,3 +96,28 @@ type NewsDataInsight struct {
 	Sentiment          string `json:"sentiment"`
 	SentimentReasoning string `json:"sentiment_reasoning"`
 }
+
+type NewsAPIResponse struct {
+	Feed []NewsItem `json:"feed"`
+}
+
+type NewsItem struct {
+	Title          string           `json:"title"`
+	TimePublished  string           `json:"time_published"`
+	TickerSentiment []TickerSentiment `json:"ticker_sentiment"`
+}
+
+type TickerSentiment struct {
+	Ticker              string  `json:"ticker"`
+	RelevanceScore      string `json:"relevance_score"`
+	TickerSentimentScore string `json:"ticker_sentiment_score"`
+	TickerSentimentLabel string  `json:"ticker_sentiment_label"`
+}
+
+type FilteredNewsItem struct {
+	Title         string  `json:"title"`
+	TimePublished string  `json:"time_published"`
+	Sentiment     string  `json:"sentiment"`
+	SentimentRelevance string `json:"sentiment_relevance"`
+	SentimentLabel string  `json:"sentiment_label"`
+}
