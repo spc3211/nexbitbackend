@@ -4,7 +4,6 @@ import (
 	"fmt"
 	fmpApiClient "nexbit/external/fmp"
 	openAiClient "nexbit/external/openai"
-	polygonApiClient "nexbit/external/polygon"
 	newsApiClient "nexbit/external/news"
 	"nexbit/util"
 
@@ -16,15 +15,13 @@ import (
 type ChatService struct {
 	openAiClient     *openAiClient.OpenAiClient
 	fmpApiClient     *fmpApiClient.FmpApiClient
-	polygonApiClient *polygonApiClient.PolygonApiClient
 	newsApiClient    *newsApiClient.NewsApiClient
 }
 
-func NewChatService(openAiClient *openAiClient.OpenAiClient, fmpApiClient *fmpApiClient.FmpApiClient, polygonApiClient *polygonApiClient.PolygonApiClient, newsApiClient *newsApiClient.NewsApiClient) *ChatService {
+func NewChatService(openAiClient *openAiClient.OpenAiClient, fmpApiClient *fmpApiClient.FmpApiClient, newsApiClient *newsApiClient.NewsApiClient) *ChatService {
 	return &ChatService{
 		openAiClient:     openAiClient,
 		fmpApiClient:     fmpApiClient,
-		polygonApiClient: polygonApiClient,
 		newsApiClient:    newsApiClient,
 	}
 }
