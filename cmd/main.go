@@ -57,7 +57,7 @@ func main() {
 	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
 	externalNewsApiClient := externalNewsClient.NewAPIClient(httpClient)
 
-	chatService := chatService.NewChatService(dbService, externalChatGptClient, externalFmpApiClient, externalPolygonApiClient)
+	chatService := chatService.NewChatService(dbService, externalChatGptClient, externalFmpApiClient, externalNewsApiClient)
 	router.ChatRouter(app, chatService)
 
 	if err := app.Listen(":3002"); err != nil {

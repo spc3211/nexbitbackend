@@ -1,0 +1,73 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build golang code
+        run: make build
+
+  publish-to-ecr:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-2
+
+      - name: Login to Amazon ECR
+        run: aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin 661194186194.dkr.ecr.ap-south-2.amazonaws.com
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag datawand-repos
+
+      - name: Tag Docker image for ECR
+        run: docker tag datawand-repos:latest 661194186194.dkr.ecr.ap-south-2.amazonaws.com/datawand-repos:latest
+
+      - name: Push Docker image to Amazon ECR
+        run: docker push 661194186194.dkr.ecr.ap-south-2.amazonaws.com/datawand-repos:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: publish-to-ecr
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-2
+
+      - name: Login to Amazon ECR
+        run: aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin 661194186194.dkr.ecr.ap-south-2.amazonaws.com
+
+      - name: Pull container image from Amazon ECR
+        run: docker pull 661194186194.dkr.ecr.ap-south-2.amazonaws.com/datawand-repos:latest
+
+      - name: Stop and remove existing container
+        run: docker stop datawand-backend-main || true && docker rm datawand-backend-main || true
+
+      - name: Run new container
+        run: docker run -d --name datawand-backend-main -p 80:80 661194186194.dkr.ecr.ap-south-2.amazonaws.com/datawand-repos:latest
