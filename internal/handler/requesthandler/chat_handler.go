@@ -14,7 +14,9 @@ type ChatHandler struct {
 }
 
 func NewChatHandler(chatService *chatService.ChatService) *ChatHandler {
-	return &ChatHandler{chatService: chatService}
+	return &ChatHandler{
+		chatService: chatService,
+	}
 }
 
 func (h *ChatHandler) UserChatHandler(ctx *fiber.Ctx) error {
@@ -45,4 +47,25 @@ func (h *ChatHandler) NewsInsightsHandler(ctx *fiber.Ctx) error {
 	ctx.Locals("stockSymbol", stockSymbol)
 	_ = h.chatService.FetchNewsInsights(ctx)
 	return ctx.Context().Err()
+}
+
+func (h *ChatHandler) FileUploadHandler(ctx *fiber.Ctx) error {
+	var reqData models.FileUploadRequest
+
+	err := ctx.BodyParser(&reqData)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[FileUploadHandler] request body is invalid with err:%v", err)
+		return err
+	}
+
+	err = h.chatService.Uploadfile(ctx, reqData)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[FileUploadHandler] error from fileUploadService err:%v", err)
+		return ctx.JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return ctx.JSON(fiber.Map{
+		"message": "uploaded succesfully",
+	})
 }

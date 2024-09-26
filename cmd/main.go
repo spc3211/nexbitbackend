@@ -2,18 +2,21 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
+	"nexbit/internal/repo"
 	router "nexbit/internal/router/v1"
 	chatService "nexbit/internal/service"
 
 	logger "nexbit/util"
 
-	openai "github.com/sashabaranov/go-openai"
 	external "nexbit/external"
 	externalFmpApiClient "nexbit/external/fmp"
-	externalOpenAiClient "nexbit/external/openai"
 	externalNewsClient "nexbit/external/news"
+	externalOpenAiClient "nexbit/external/openai"
+
+	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -31,14 +34,30 @@ func main() {
 		StackTraceHandler: stackTraceHandler,
 	}))
 
-	openaiClient := openai.NewClient("s")
+	//connect database
+	connStr := "user=nexbit dbname=chat password=password host=localhost port=5432 sslmode=disable"
+	dbService, err := repo.NewDBService(connStr)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = dbService.Ping()
+	if err != nil {
+		log.Fatalf("Error connecting to the database: %v\n", err)
+	} else {
+		fmt.Println("Successfully connected to the PostgreSQL database!")
+	}
+
+	defer dbService.Close()
+
+	openaiClient := openai.NewClient("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")
 
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
 	httpClient := external.NewHTTPClient(5 * time.Second)
 	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
 	externalNewsApiClient := externalNewsClient.NewAPIClient(httpClient)
 
-	chatService := chatService.NewChatService(externalChatGptClient, externalFmpApiClient, externalNewsApiClient)
+	chatService := chatService.NewChatService(dbService, externalChatGptClient, externalFmpApiClient, externalPolygonApiClient)
 	router.ChatRouter(app, chatService)
 
 	if err := app.Listen(":3002"); err != nil {

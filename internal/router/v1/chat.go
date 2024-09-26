@@ -14,4 +14,5 @@ func ChatRouter(app *fiber.App, chatService *chatService.ChatService) {
 	api.Get("/stock/news-insights", handler.NewsInsightsHandler)
 	api.Post("/chat/chat-complete", handler.UserChatHandler)
 	api.Get("/stock/get-fundamentals", handler.FundamentalHandler)
+	api.Post("/stock/save-reports", handler.FileUploadHandler)
 }

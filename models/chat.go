@@ -1,7 +1,12 @@
 package models
 
 type SubmitChatRequest struct {
-	Message string `json:"message"`
+	Message []SubmitChatCompletionMessage `json:"messages"`
+}
+
+type SubmitChatCompletionMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 type Holding struct {
@@ -107,27 +112,52 @@ type NewsDataInsight struct {
 	SentimentReasoning string `json:"sentiment_reasoning"`
 }
 
+type FileUploadRequest struct {
+	FilePaths []string `json:"paths"`
+}
+
+type FileInfo struct {
+	Name string
+	Path string
+}
+
+type StockResearchReport struct {
+	Company            string    `json:"company"`
+	Sector             string    `json:"sector"`
+	Recommendation     string    `json:"recommendation"`
+	TargetPrice        float64   `json:"target_price"`
+	RevenueProjections []float64 `json:"revenue_projections"`
+	CAGR               float64   `json:"cagr"`
+	EBITDA             float64   `json:"ebitda"`
+	NewsSummary        string    `json:"news_summary"`
+}
+
+type StockResearchResponse struct {
+	Data []StockResearchReport `json:"data"`
+	Err  string                `json:"err"`
+}
+
 type NewsAPIResponse struct {
 	Feed []NewsItem `json:"feed"`
 }
 
 type NewsItem struct {
-	Title          string           `json:"title"`
-	TimePublished  string           `json:"time_published"`
+	Title           string            `json:"title"`
+	TimePublished   string            `json:"time_published"`
 	TickerSentiment []TickerSentiment `json:"ticker_sentiment"`
 }
 
 type TickerSentiment struct {
-	Ticker              string  `json:"ticker"`
-	RelevanceScore      string `json:"relevance_score"`
+	Ticker               string `json:"ticker"`
+	RelevanceScore       string `json:"relevance_score"`
 	TickerSentimentScore string `json:"ticker_sentiment_score"`
-	TickerSentimentLabel string  `json:"ticker_sentiment_label"`
+	TickerSentimentLabel string `json:"ticker_sentiment_label"`
 }
 
 type FilteredNewsItem struct {
-	Title         string  `json:"title"`
-	TimePublished string  `json:"time_published"`
-	Sentiment     string  `json:"sentiment"`
+	Title              string `json:"title"`
+	TimePublished      string `json:"time_published"`
+	Sentiment          string `json:"sentiment"`
 	SentimentRelevance string `json:"sentiment_relevance"`
-	SentimentLabel string  `json:"sentiment_label"`
+	SentimentLabel     string `json:"sentiment_label"`
 }

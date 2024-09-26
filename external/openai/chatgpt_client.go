@@ -17,17 +17,12 @@ func NewOpenAiClient(apiClient *openai.Client) *OpenAiClient {
 	}
 }
 
-func (h *OpenAiClient) ChatCompletionClient(ctx context.Context, message string) (openai.ChatCompletionResponse, error) {
+func (h *OpenAiClient) ChatCompletionClient(ctx context.Context, messages []openai.ChatCompletionMessage) (openai.ChatCompletionResponse, error) {
 	resp, err := h.apiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: message,
-				},
-			},
+			Model:    openai.GPT4oLatest,
+			Messages: messages,
 		},
 	)
 
@@ -36,5 +31,13 @@ func (h *OpenAiClient) ChatCompletionClient(ctx context.Context, message string)
 	}
 
 	return resp, nil
+}
 
+func (h *OpenAiClient) UploadFileClient(ctx context.Context, req openai.FileRequest) (openai.File, error) {
+	fileResp, err := h.apiClient.CreateFile(context.Background(), req)
+
+	if err != nil {
+		return fileResp, fmt.Errorf("[UploadFileClient] error uploading file: %w", err)
+	}
+	return fileResp, nil
 }
