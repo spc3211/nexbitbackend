@@ -7,7 +7,7 @@ import (
 
 	"nexbit/internal/repo"
 	router "nexbit/internal/router/v1"
-	chatService "nexbit/internal/service"
+	service "nexbit/internal/service"
 
 	logger "nexbit/util"
 
@@ -57,8 +57,10 @@ func main() {
 	externalFmpApiClient := externalFmpApiClient.NewAPIClient(httpClient)
 	externalNewsApiClient := externalNewsClient.NewAPIClient(httpClient)
 
-	chatService := chatService.NewChatService(dbService, externalChatGptClient, externalFmpApiClient, externalNewsApiClient)
+	chatService := service.NewChatService(dbService, externalChatGptClient, externalFmpApiClient, externalNewsApiClient)
+	onboardingService := service.NewOnboardingService(dbService)
 	router.ChatRouter(app, chatService)
+	router.OnboardingRouter(app, onboardingService)
 
 	if err := app.Listen(":3002"); err != nil {
 		fmt.Println("Error starting server:", err)

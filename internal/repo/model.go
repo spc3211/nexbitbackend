@@ -10,3 +10,29 @@ type StockResearchReport struct {
 	EBITDA             float64   `db:"ebitda"`
 	NewsSummary        string    `db:"news_summary"`
 }
+
+type Question struct {
+    Question string  `json:"question"`
+    Answers  []Answer `json:"answers"`
+}
+
+type Answer struct {
+    Text  string `json:"text"`
+    Score int    `json:"score"`
+}
+
+type Portfolio struct {
+    Name      string            `json:"name"`
+    Allocation map[string]int    `json:"allocation"`
+    Sectors   map[string]int    `json:"sectors"`
+}
+
+type UserInput struct {
+    Answers []int `json:"answers"`
+}
+
+type UserPortfolio struct {
+    UserID         int    `json:"user_id"`
+    PortfolioName  string `json:"portfolio_name"`
+}
+
