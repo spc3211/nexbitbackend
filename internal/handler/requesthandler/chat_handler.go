@@ -38,8 +38,10 @@ func (h *ChatHandler) FundamentalHandler(ctx *fiber.Ctx) error {
 
 	stockSymbol := ctx.Query("stock")
 	ctx.Locals("stockSymbol", stockSymbol)
-	err := h.chatService.FetchFundamentals(ctx)
-	return err
+	finalRespnse, _ := h.chatService.FetchFundamentals(ctx, stockSymbol)
+	return ctx.JSON(fiber.Map{
+		"stock_financials": finalRespnse,
+	})
 }
 
 func (h *ChatHandler) NewsInsightsHandler(ctx *fiber.Ctx) error {
@@ -67,5 +69,26 @@ func (h *ChatHandler) FileUploadHandler(ctx *fiber.Ctx) error {
 	}
 	return ctx.JSON(fiber.Map{
 		"message": "uploaded succesfully",
+	})
+}
+
+func (h *ChatHandler) UserQueryHandler(ctx *fiber.Ctx) error {
+
+	var reqData models.SubmitChatRequest
+
+	err := ctx.BodyParser(&reqData)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[UserQueryHandler] request body is invalid with err:%v", err)
+		return err
+	}
+
+	chatResponse, err := h.chatService.UserQueryService(ctx, reqData)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[UserQueryHandler] Failed to process chat request. err: %v", err)
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": chatResponse,
 	})
 }

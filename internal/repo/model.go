@@ -1,14 +1,24 @@
 package repo
 
 type StockResearchReport struct {
-	Company            string    `db:"company"`
-	Sector             string    `db:"sector"`
-	Recommendation     string    `db:"recommendation"`
-	TargetPrice        float64   `db:"target_price"`
-	RevenueProjections []float64 `db:"revenue_projections"`
-	CAGR               float64   `db:"cagr"`
-	EBITDA             float64   `db:"ebitda"`
-	NewsSummary        string    `db:"news_summary"`
+	Id                 string  `db:"id"`
+	Company            string  `db:"company"`
+	Sector             string  `db:"sector"`
+	Recommendation     string  `db:"recommendation"`
+	TargetPrice        float64 `db:"target_price"`
+	RevenueProjections string  `db:"revenue_projections"`
+	CAGR               float64 `db:"cagr"`
+	EBITDA             string  `db:"ebitda"`
+	Ticker             string  `db:"ticker"`
+	Date               string  `json:"date"`
+	NewsSummary        string  `db:"news_summary"`
+}
+
+type StockResearchFetchRequest struct {
+	Date        string
+	Sector      string
+	CompanyName string
+	Ticker      string
 }
 
 type Question struct {

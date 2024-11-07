@@ -7,7 +7,7 @@ import psycopg2
 
 app = Flask(__name__)
 
-@app.route('/ask', methods=['POST'])
+@app.route('/stock/reports', methods=['POST'])
 def ask_question():
     # Get the request data
     data = request.get_json()
@@ -21,7 +21,7 @@ Can you analyze the provided stock research report and extract relevant data to 
 
 type StockReport struct {
     Company           string   `json:"company"`              // Name of the company
-    Ticker            string   `json:"ticker"`              // Ticker name of company
+    Ticker            string   `json:"ticker"`              // Ticker name of company (fetch from NSE India if not present)
     Sector            string   `json:"sector"`               // Industry sector
     Recommendation    string   `json:"recommendation"`       // Analyst recommendation
     TargetPrice       float64  `json:"target_price"`         // Target price in INR
@@ -39,14 +39,14 @@ type StockReport struct {
    - CAGR and EBITDA values are found in the financial projections section.
    - News summary is extracted from narrative sections detailing company updates or significant events (around 150 words).
 
-4. Cross-check each extracted field for accuracy. If data is missing, mark it as null or "N/A" in the JSON output.
+4. Cross-check each extracted field for accuracy. If data is missing, mark it as null in the JSON output.
 
 5. The final output must be formatted as valid JSON, containing only one StockReport object in a single line, with no extra whitespace or newline characters.
 
 {
   "data": {
     "company": "string",
-    "ticker": "string",
+    "ticker": "string", //Fetch ticker associated with the company from NSE India
     "sector": "string",
     "recommendation": "string",
     "target_price": "float64",
@@ -64,6 +64,7 @@ type StockReport struct {
 7. IMPORTANT: Only process the relevant stock research report provided.
 
 8. IMPORTANT: Return the output as valid JSON in a single line without any additional formatting, including no newline characters.
+9. If the ticker is not present in the report, please fetch the ticker associated with the company name from NSE India.
 
 """
 
@@ -131,8 +132,8 @@ def insert_stock_report(data):
 
         # Define the insert SQL statement
         insert_query = """
-        INSERT INTO stock_reports (company, sector, recommendation, target_price, revenue_projections, cagr, ebitda, news_summary, date)
-        VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s::jsonb, %s, %s)
+        INSERT INTO stock_reports (company, sector, recommendation, target_price, revenue_projections, cagr, ebitda, news_summary, date,ticker)
+        VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s::jsonb, %s, %s,%s)
         RETURNING id;
         """
         
@@ -146,7 +147,8 @@ def insert_stock_report(data):
             data['cagr'],
             json.dumps(data['ebitda']),               # Convert dict to JSON string
             data['news_summary'],
-            data['date']
+            data['date'],
+            data['ticker']
         ))
 
         # Fetch the returned id
@@ -165,6 +167,6 @@ def insert_stock_report(data):
 
  
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3003)
+    app.run(host='0.0.0.0', port=3004)
 
 
