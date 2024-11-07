@@ -50,7 +50,7 @@ func main() {
 
 	defer dbService.Close()
 
-	openaiClient := openai.NewClient("sk")
+	openaiClient := openai.NewClient("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")
 
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
 	httpClient := external.NewHTTPClient(5 * time.Second)

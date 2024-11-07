@@ -161,3 +161,18 @@ type FilteredNewsItem struct {
 	SentimentRelevance string `json:"sentiment_relevance"`
 	SentimentLabel     string `json:"sentiment_label"`
 }
+
+type UserParseQuery struct {
+	Intent      string `json:"intent"`
+	Ticker      string `json:"ticker"`
+	Amount      string `json:"amount"`
+	Horizon     string `json:"horizon"`
+	Sector      string `json:"sector"`
+	CompanyName string `json:"company_name"`
+	News        string `json:"news"`
+}
+
+type UserParseQueryResponse struct {
+	Data  UserParseQuery `json:"data"`
+	Error error          `json:"error"`
+}

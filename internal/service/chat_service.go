@@ -10,6 +10,7 @@ import (
 	"nexbit/internal/repo"
 	"nexbit/util"
 	"path/filepath"
+	"strings"
 	"time"
 
 	models "nexbit/models"
@@ -56,43 +57,39 @@ func (s *ChatService) ChatService(ctx *fiber.Ctx) error {
 	})
 }
 
-func (s *ChatService) FetchFundamentals(ctx *fiber.Ctx) error {
-	stockSymbol := ctx.Locals("stockSymbol").(string)
-
+func (s *ChatService) FetchFundamentals(ctx *fiber.Ctx, stockSymbol string) (*models.FundamentalDataResponse, error) {
 	incomeStatementResponse, err := s.fmpApiClient.FetchIncomeStatementAPI(ctx.Context(), stockSymbol, "annual")
 	if err != nil {
 		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
-		return err
+		return nil, err
 	}
 
 	balanceSheetResponse, err := s.fmpApiClient.FetchBalanceSheet(ctx.Context(), stockSymbol, "annual")
 	if err != nil {
 		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
-		return err
+		return nil, err
 	}
 
 	cashFlowResponse, err := s.fmpApiClient.FetchCashFlowStatement(ctx.Context(), stockSymbol, "annual")
 	if err != nil {
 		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
-		return err
+		return nil, err
 	}
 
 	financialRationResponse, err := s.fmpApiClient.FetchFinancialsRatio(ctx.Context(), stockSymbol, "annual")
 	if err != nil {
 		util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
-		return err
+		return nil, err
 	}
 
-	finalRespnse := models.FundamentalDataResponse{
+	finalRespnse := &models.FundamentalDataResponse{
 		BalanceSheetResponse:    balanceSheetResponse,
 		IncomeStatementResponse: incomeStatementResponse,
 		CashFlowResponse:        cashFlowResponse,
 		FinancialRatiosResponse: financialRationResponse,
 	}
 
-	return ctx.JSON(fiber.Map{
-		"stock_financials": finalRespnse,
-	})
+	return finalRespnse, nil
 }
 
 func (s *ChatService) FetchNewsInsights(ctx *fiber.Ctx) error {
@@ -146,8 +143,6 @@ func (s *ChatService) Uploadfile(ctx *fiber.Ctx, req models.FileUploadRequest) e
 		return err
 	}
 
-	fmt.Println(chatResponse.Choices[0].Message.Content)
-
 	var response models.StockResearchResponse
 	if err := json.Unmarshal([]byte(chatResponse.Choices[0].Message.Content), &response); err != nil {
 		return fmt.Errorf("[Uploadfile] Error parsing JSON: %v", err)
@@ -160,14 +155,11 @@ func (s *ChatService) Uploadfile(ctx *fiber.Ctx, req models.FileUploadRequest) e
 	for _, reportResponse := range response.Data {
 
 		dbReq := repo.StockResearchReport{
-			Company:            reportResponse.Company,
-			Sector:             reportResponse.Sector,
-			Recommendation:     reportResponse.Recommendation,
-			TargetPrice:        reportResponse.TargetPrice,
-			RevenueProjections: reportResponse.RevenueProjections,
-			CAGR:               reportResponse.CAGR,
-			EBITDA:             reportResponse.EBITDA,
-			NewsSummary:        reportResponse.NewsSummary,
+			Company:        reportResponse.Company,
+			Sector:         reportResponse.Sector,
+			Recommendation: reportResponse.Recommendation,
+			TargetPrice:    reportResponse.TargetPrice,
+			NewsSummary:    reportResponse.NewsSummary,
 		}
 
 		err := s.db.SaveStockReport(context.Background(), dbReq)
@@ -179,6 +171,138 @@ func (s *ChatService) Uploadfile(ctx *fiber.Ctx, req models.FileUploadRequest) e
 	}
 
 	return nil
+}
+
+func (s *ChatService) UserQueryService(ctx *fiber.Ctx, messages models.SubmitChatRequest) (*openai.ChatCompletionMessage, error) {
+	var chatgptMessages []openai.ChatCompletionMessage
+	var chatgptMessage openai.ChatCompletionMessage
+
+	latestMessage := messages.Message[len(messages.Message)-1].Content
+
+	for index, message := range messages.Message {
+		if index == len(messages.Message)-1 {
+			continue
+		}
+		var chatgptMessage openai.ChatCompletionMessage
+		chatgptMessage.Role = message.Role
+		chatgptMessage.Content = message.Content
+
+		chatgptMessages = append(chatgptMessages, chatgptMessage)
+	}
+
+	userQuery, cont, _ := s.parseUserQuery(ctx, latestMessage)
+	if !cont {
+		chatgptMessage.Role = "user"
+		chatgptMessage.Content = userQuery
+		return &chatgptMessage, nil
+	}
+
+	var userQueryMessage openai.ChatCompletionMessage
+	userQueryMessage.Role = "user"
+	userQueryMessage.Content = userQuery
+
+	chatgptMessages = append(chatgptMessages, userQueryMessage)
+
+	chatResponse, err := s.openAiClient.ChatCompletionClient(ctx.Context(), chatgptMessages)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[UserQueryService] Failed to process chat request. err: %v", err)
+		return nil, err
+	}
+
+	return &chatResponse.Choices[0].Message, nil
+}
+
+func (s *ChatService) parseUserQuery(ctx *fiber.Ctx, userQuery string) (string, bool, error) {
+	userQueryObject, err := s.fetchParseUserQuery(ctx, userQuery)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[parseUserQuery] Failed to process user query request. err: %v", err)
+		return "", false, err
+	}
+
+	if userQueryObject.Error != nil {
+		util.WithContext(ctx.Context()).Errorf("[parseUserQuery] got custom error while parsing user query. err: %v", err)
+		return "", false, err
+	}
+
+	switch userQueryObject.Data.Intent {
+	case util.BUY:
+		return s.buyIntentFlow(ctx, userQueryObject.Data), true, nil
+	case util.SELL:
+		return s.sellIntentFlow(ctx, userQueryObject.Data), true, nil
+	case util.RESEARCH:
+		return s.researchIntentFlow(ctx, userQueryObject.Data), true, nil
+	case util.OTHER:
+		return s.otherNotRelevantIntentFlow(ctx), false, nil
+	default:
+		util.WithContext(ctx.Context()).Errorf("[parseUserQuery] user query in invalid. err: %v", err)
+		return "", false, err
+	}
+}
+
+func (s *ChatService) fetchParseUserQuery(ctx *fiber.Ctx, userQuery string) (models.UserParseQueryResponse, error) {
+	chatgptMessage := []openai.ChatCompletionMessage{
+		{
+			Role:    "user",
+			Content: s.generateUserQueryParsePrompt(userQuery),
+		},
+	}
+
+	var response models.UserParseQueryResponse
+	chatResponse, err := s.openAiClient.ChatCompletionClient(ctx.Context(), chatgptMessage)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[fetchParseUserQuery] Failed to process chat request. err: %v", err)
+		return response, err
+	}
+
+	cleanedContent := strings.TrimSpace(chatResponse.Choices[0].Message.Content)
+	if strings.HasPrefix(cleanedContent, "```json") {
+		cleanedContent = strings.TrimPrefix(cleanedContent, "```json")
+	}
+	if strings.HasPrefix(cleanedContent, "```") {
+		cleanedContent = strings.TrimPrefix(cleanedContent, "```")
+	}
+	if strings.HasSuffix(cleanedContent, "```") {
+		cleanedContent = strings.TrimSuffix(cleanedContent, "```")
+	}
+
+	err = json.Unmarshal([]byte(cleanedContent), &response)
+	if err != nil {
+		return response, fmt.Errorf("[fetchParseUserQuery] failed to parse res with err %v", err)
+	}
+	return response, nil
+}
+
+func (s *ChatService) generateUserQueryParsePrompt(userQuery string) string {
+	return fmt.Sprintf("Given the user query, extract the following information:\n"+
+		"- intent (BUY, SELL, RESEARCH, OTHER); OTHER if unrelated to stock market, finance, investment,stock market knowledge or wealth;\n"+
+		"- ticker (Indian stock ticker, if present)\n"+
+		"- company name (the name of the company associated with the ticker, if present)\n"+
+		"- amount (any mentioned amount)\n"+
+		"- sector (any sector information, if present)\n"+
+		"- horizon (time frame, if mentioned)\n"+
+		"- news (if any news is referenced)\n"+
+		"Respond in the following JSON format:\n"+
+		"{\n"+
+		"  \"data\": {\n"+
+		"    \"intent\": \"\",\n"+
+		"    \"ticker\": \"\",\n"+
+		"    \"company_name\": \"\",\n"+
+		"    \"amount\": \"\",\n"+
+		"    \"sector\": \"\",\n"+
+		"    \"horizon\": \"\",\n"+
+		"    \"news\": \"\"\n"+
+		"  },\n"+
+		"  \"error\": null\n"+
+		"}\n\n"+
+		"User query: \"%s\"", userQuery)
+
+}
+
+func (s *ChatService) generateMainPromptForUserQuery() string {
+	return `You are an investment advisor. Analyze the stock based on the following data and provide an investment recommendation.
+Consider that I don't know enough about market terms like P/E ratio, eliminate jargon, and just tell me whether I should buy or not. 
+Back your decision with reasoning and past data. Also, provide a projected return over the mentioned time frame. 
+Limit your answer to 70 words and use bullet points.`
 }
 
 func (s *ChatService) generatePromptContent(fileIDs []string) string {
@@ -194,4 +318,145 @@ func getFileInfos(filePaths []string) ([]models.FileInfo, error) {
 	}
 
 	return fileInfos, nil
+}
+
+func (s *ChatService) buyIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
+	var promptBuilder strings.Builder
+
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
+
+	if userParseQuery.Ticker != "" {
+
+		//fetch fundamentals
+		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(fundamentalData)
+		//FetchNewsInsights
+		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(newsData)
+	}
+
+	//sector has to add
+	return promptBuilder.String()
+}
+func (s *ChatService) sellIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
+	if userParseQuery.Ticker != "" {
+
+		//fetch fundamentals
+		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(fundamentalData)
+		//FetchNewsInsights
+		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(newsData)
+	}
+
+	//sector has to add
+	return promptBuilder.String()
+}
+
+func (s *ChatService) researchIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
+
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
+	if userParseQuery.Ticker != "" {
+
+		//fetch fundamentals
+		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(fundamentalData)
+		//FetchNewsInsights
+		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(newsData)
+
+		//FetchReports
+		reports, err := s.buildResearchReportsWithPrompt(ctx, userParseQuery)
+		if err != nil {
+			return ""
+		}
+		promptBuilder.WriteString(reports)
+	}
+
+	//sector has to add
+	return promptBuilder.String()
+}
+
+func (s *ChatService) otherNotRelevantIntentFlow(ctx *fiber.Ctx) string {
+
+	prompt := fmt.Sprintf("this chatbot is build for investment and finance related queries only")
+
+	//sector has to add
+	return prompt
+}
+
+func (s *ChatService) buildFundamentaWithPrompt(ctx *fiber.Ctx, ticker string) (string, error) {
+	fundamentalResponse, err := s.FetchFundamentals(ctx, ticker)
+	if err != nil {
+		return "", err
+	}
+
+	fundamentalJsonData, err := json.Marshal(fundamentalResponse)
+	if err != nil {
+		return "", err
+	}
+
+	prompt := fmt.Sprintf("Here’s the fundamental data, including revenue, profit, debt, and key ratios (P/E, ROE, etc.). Analyze the data and identify any notable trends in the company's performance.\n\nData: %s", fundamentalJsonData)
+
+	return prompt, nil
+}
+
+func (s *ChatService) buildNewsWithPrompt(ctx *fiber.Ctx, ticker string) (string, error) {
+
+	insights, err := s.newsApiClient.FetchNewsInsights(ctx.Context(), ticker)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[buildNewsWithPrompt] Failed to process fetch news request. err: %v", err)
+		return "", err
+	}
+
+	fundamentalJsonData, err := json.Marshal(insights)
+	if err != nil {
+		return "", err
+	}
+
+	prompt := fmt.Sprintf("Here’s the latest news summary related to %s. Analyze the news and explain how it might impact the company’s stock performance or the broader market.\n\nNews Summary: %s", ticker, fundamentalJsonData)
+	return prompt, nil
+}
+
+func (s *ChatService) buildResearchReportsWithPrompt(ctx *fiber.Ctx, userParsedQuery models.UserParseQuery) (string, error) {
+	dbReq := repo.StockResearchFetchRequest{
+		Date:        "28/08/2024",
+		Sector:      userParsedQuery.Sector,
+		CompanyName: userParsedQuery.CompanyName,
+		Ticker:      userParsedQuery.Ticker,
+	}
+
+	resp, err := s.db.FetchStockReport(context.Background(), dbReq)
+	if err != nil {
+		util.WithContext(ctx.Context()).Errorf("[fetchStockResearchReports] Failed to fetch reports from database. err: %v", err)
+		return "", err
+	}
+
+	reportsJsonData, err := json.Marshal(resp)
+	if err != nil {
+		return "", err
+	}
+	prompt := fmt.Sprintf("Here’s a summary of the stock research reports in JSON format: %s. Analyze these reports and identify any key insights, trends, or risks related to the companies’ performances. Highlight areas of growth, stability, or concern.", reportsJsonData)
+	return prompt, nil
 }
