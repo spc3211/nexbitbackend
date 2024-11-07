@@ -151,9 +151,6 @@ var ConstantResponse = models.PortfolioResponse{
 			TotalPNLPercentage: 8.29,
 		},
 	},
-<<<<<<< Updated upstream
-}
-=======
 }
 
 const (
@@ -162,4 +159,3 @@ const (
 	RESEARCH = "RESEARCH" // 2
 	OTHER    = "OTHER"
 )
->>>>>>> Stashed changes

@@ -22,27 +22,26 @@ type StockResearchFetchRequest struct {
 }
 
 type Question struct {
-    Question string  `json:"question"`
-    Answers  []Answer `json:"answers"`
+	Question string   `json:"question"`
+	Answers  []Answer `json:"answers"`
 }
 
 type Answer struct {
-    Text  string `json:"text"`
-    Score int    `json:"score"`
+	Text  string `json:"text"`
+	Score int    `json:"score"`
 }
 
 type Portfolio struct {
-    Name      string            `json:"name"`
-    Allocation map[string]int    `json:"allocation"`
-    Sectors   map[string]int    `json:"sectors"`
+	Name       string         `json:"name"`
+	Allocation map[string]int `json:"allocation"`
+	Sectors    map[string]int `json:"sectors"`
 }
 
 type UserInput struct {
-    Answers []int `json:"answers"`
+	Answers []int `json:"answers"`
 }
 
 type UserPortfolio struct {
-    UserID         int    `json:"user_id"`
-    PortfolioName  string `json:"portfolio_name"`
+	UserID        int    `json:"user_id"`
+	PortfolioName string `json:"portfolio_name"`
 }
-
