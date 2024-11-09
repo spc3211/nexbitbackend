@@ -9,6 +9,8 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 )
 
+require github.com/joho/godotenv v1.5.1 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect

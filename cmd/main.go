@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"nexbit/internal/repo"
@@ -16,6 +17,7 @@ import (
 	externalNewsClient "nexbit/external/news"
 	externalOpenAiClient "nexbit/external/openai"
 
+	"github.com/joho/godotenv"
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,7 +37,22 @@ func main() {
 	}))
 
 	//connect database
-	connStr := "user=nexbit dbname=chat password=password host=localhost port=5432 sslmode=disable"
+	//connStr := "user=nexbit dbname=chat password=password host=localhost port=5432 sslmode=disable"
+
+	// Loads the .env file
+	_ = godotenv.Load()
+
+	user := os.Getenv("DB_USER")
+	dbname := os.Getenv("DB_NAME")
+	password := os.Getenv("DB_PASSWORD")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	sslmode := os.Getenv("DB_SSLMODE")
+	openAiApiKey := os.Getenv("OPENAI_API_KEY")
+
+	connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
+		user, dbname, password, host, port, sslmode)
+
 	dbService, err := repo.NewDBService(connStr)
 	if err != nil {
 		log.Fatalln(err)
@@ -50,7 +67,7 @@ func main() {
 
 	defer dbService.Close()
 
-	openaiClient := openai.NewClient("")
+	openaiClient := openai.NewClient(openAiApiKey)
 
 	externalChatGptClient := externalOpenAiClient.NewOpenAiClient(openaiClient)
 	httpClient := external.NewHTTPClient(5 * time.Second)
