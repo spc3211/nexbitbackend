@@ -170,6 +170,7 @@ type UserParseQuery struct {
 	Sector      string `json:"sector"`
 	CompanyName string `json:"company_name"`
 	News        string `json:"news"`
+	InfoType    string `json:"info_type"`
 }
 
 type UserParseQueryResponse struct {

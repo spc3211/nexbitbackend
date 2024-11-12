@@ -213,24 +213,26 @@ func (s *ChatService) UserQueryService(ctx *fiber.Ctx, messages models.SubmitCha
 }
 
 func (s *ChatService) parseUserQuery(ctx *fiber.Ctx, userQuery string) (string, bool, error) {
-	userQueryObject, err := s.fetchParseUserQuery(ctx, userQuery)
+	fetchQueryObject, err := s.fetchParseUserQuery(ctx, userQuery)
 	if err != nil {
 		util.WithContext(ctx.Context()).Errorf("[parseUserQuery] Failed to process user query request. err: %v", err)
 		return "", false, err
 	}
 
-	if userQueryObject.Error != nil {
+	if fetchQueryObject.Error != nil {
 		util.WithContext(ctx.Context()).Errorf("[parseUserQuery] got custom error while parsing user query. err: %v", err)
 		return "", false, err
 	}
 
-	switch userQueryObject.Data.Intent {
+	fmt.Println(fetchQueryObject.Data)
+
+	switch fetchQueryObject.Data.Intent {
 	case util.BUY:
-		return s.buyIntentFlow(ctx, userQueryObject.Data), true, nil
+		return s.buyIntentFlow(ctx, fetchQueryObject.Data, userQuery), true, nil
 	case util.SELL:
-		return s.sellIntentFlow(ctx, userQueryObject.Data), true, nil
+		return s.sellIntentFlow(ctx, fetchQueryObject.Data, userQuery), true, nil
 	case util.RESEARCH:
-		return s.researchIntentFlow(ctx, userQueryObject.Data), true, nil
+		return s.researchIntentFlow(ctx, fetchQueryObject.Data, userQuery), true, nil
 	case util.OTHER:
 		return s.otherNotRelevantIntentFlow(ctx), false, nil
 	default:
@@ -265,6 +267,7 @@ func (s *ChatService) fetchParseUserQuery(ctx *fiber.Ctx, userQuery string) (mod
 		cleanedContent = strings.TrimSuffix(cleanedContent, "```")
 	}
 
+	fmt.Println(cleanedContent)
 	err = json.Unmarshal([]byte(cleanedContent), &response)
 	if err != nil {
 		return response, fmt.Errorf("[fetchParseUserQuery] failed to parse res with err %v", err)
@@ -275,12 +278,13 @@ func (s *ChatService) fetchParseUserQuery(ctx *fiber.Ctx, userQuery string) (mod
 func (s *ChatService) generateUserQueryParsePrompt(userQuery string) string {
 	return fmt.Sprintf("Given the user query, extract the following information:\n"+
 		"- intent (BUY, SELL, RESEARCH, OTHER); OTHER if unrelated to stock market, finance, investment,stock market knowledge or wealth;\n"+
-		"- ticker (Indian stock ticker, if present)\n"+
+		"- ticker (Nasdaq stock ticker, if present)\n"+
 		"- company name (the name of the company associated with the ticker, if present)\n"+
 		"- amount (any mentioned amount)\n"+
 		"- sector (any sector information, if present)\n"+
 		"- horizon (time frame, if mentioned)\n"+
 		"- news (if any news is referenced)\n"+
+		"- info_type (only if intent is RESEARCH; indicate the data types needed: 'income_statement', 'cashflow_statement', 'financial_ratios','balance_sheet', 'news')\n"+
 		"Respond in the following JSON format:\n"+
 		"{\n"+
 		"  \"data\": {\n"+
@@ -290,6 +294,7 @@ func (s *ChatService) generateUserQueryParsePrompt(userQuery string) string {
 		"    \"amount\": \"\",\n"+
 		"    \"sector\": \"\",\n"+
 		"    \"horizon\": \"\",\n"+
+		"    \"info_type\": \"\",\n"+
 		"    \"news\": \"\"\n"+
 		"  },\n"+
 		"  \"error\": null\n"+
@@ -298,11 +303,17 @@ func (s *ChatService) generateUserQueryParsePrompt(userQuery string) string {
 
 }
 
-func (s *ChatService) generateMainPromptForUserQuery() string {
-	return `You are an investment advisor. Analyze the stock based on the following data and provide an investment recommendation.
-Consider that I don't know enough about market terms like P/E ratio, eliminate jargon, and just tell me whether I should buy or not. 
-Back your decision with reasoning and past data. Also, provide a projected return over the mentioned time frame. 
-Limit your answer to 70 words and use bullet points.`
+func (s *ChatService) generateMainPromptForUserQuery(userQuery string) string {
+
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
+	prompt := `You are an investment research Analyst. Based on the provided data, answer the user query as directly and concisely as possible.
+ Use no more than 70 words and avoid unnecessary financial jargon. Highlight relevant figures only if they directly answer the query
+ Guidelines:
+1. Address only the information requested in the user query (e.g., revenue, profit, market trends).
+2. Avoid extra commentary unless specified by the user query.
+3. If historical data is included, summarize trends briefly if they provide context to the answer.
+4. Avoid recommendations unless directly asked.`
+	return fmt.Sprintf("for context today's date and time is %s. The user question is:%s, now %s", currentTime, userQuery, prompt)
 }
 
 func (s *ChatService) generatePromptContent(fileIDs []string) string {
@@ -320,19 +331,44 @@ func getFileInfos(filePaths []string) ([]models.FileInfo, error) {
 	return fileInfos, nil
 }
 
-func (s *ChatService) buyIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
+func (s *ChatService) buyIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery, userQuery string) string {
 	var promptBuilder strings.Builder
 
-	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery(userQuery))
 
 	if userParseQuery.Ticker != "" {
 
 		//fetch fundamentals
-		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		// fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		// if err != nil {
+		// 	return ""
+		// }
+		// promptBuilder.WriteString(fundamentalData)
+		//FetchNewsInsights
+		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
 		if err != nil {
 			return ""
 		}
-		promptBuilder.WriteString(fundamentalData)
+		promptBuilder.WriteString(newsData)
+
+		fmt.Println(promptBuilder.String())
+	}
+
+	fmt.Println(promptBuilder.String())
+	//sector has to add
+	return promptBuilder.String()
+}
+func (s *ChatService) sellIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery, userQuery string) string {
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery(userQuery))
+	if userParseQuery.Ticker != "" {
+
+		//fetch fundamentals
+		// fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
+		// if err != nil {
+		// 	return ""
+		// }
+		// promptBuilder.WriteString(fundamentalData)
 		//FetchNewsInsights
 		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
 		if err != nil {
@@ -344,56 +380,66 @@ func (s *ChatService) buyIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserPa
 	//sector has to add
 	return promptBuilder.String()
 }
-func (s *ChatService) sellIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
+
+func (s *ChatService) researchIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery, userQuery string) string {
+
 	var promptBuilder strings.Builder
-	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
+	promptBuilder.WriteString(s.generateMainPromptForUserQuery(userQuery))
 	if userParseQuery.Ticker != "" {
 
 		//fetch fundamentals
-		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
-		if err != nil {
-			return ""
+
+		if strings.Contains(userParseQuery.InfoType, "income_statement") {
+			fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker, "income_statement")
+			if err != nil {
+				return ""
+			}
+			promptBuilder.WriteString(fundamentalData)
 		}
-		promptBuilder.WriteString(fundamentalData)
-		//FetchNewsInsights
-		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
-		if err != nil {
-			return ""
+
+		if strings.Contains(userParseQuery.InfoType, "cashflow_statement") {
+			fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker, "cashflow_statement")
+			if err != nil {
+				return ""
+			}
+			promptBuilder.WriteString(fundamentalData)
 		}
-		promptBuilder.WriteString(newsData)
+
+		if strings.Contains(userParseQuery.InfoType, "financial_ratios") {
+			fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker, "financial_ratios")
+			if err != nil {
+				return ""
+			}
+			promptBuilder.WriteString(fundamentalData)
+		}
+
+		if strings.Contains(userParseQuery.InfoType, "balance_sheet") {
+			fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker, "balance_sheet")
+			if err != nil {
+				return ""
+			}
+			promptBuilder.WriteString(fundamentalData)
+		}
+
+		if strings.Contains(userParseQuery.InfoType, "news") {
+			newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
+			if err != nil {
+				return ""
+			}
+			promptBuilder.WriteString(newsData)
+		}
+
+		if strings.Contains(userParseQuery.InfoType, "stock_report") {
+			reports, err := s.buildResearchReportsWithPrompt(ctx, userParseQuery)
+			if err != nil {
+				return ""
+			}
+
+			promptBuilder.WriteString(reports)
+		}
 	}
 
-	//sector has to add
-	return promptBuilder.String()
-}
-
-func (s *ChatService) researchIntentFlow(ctx *fiber.Ctx, userParseQuery models.UserParseQuery) string {
-
-	var promptBuilder strings.Builder
-	promptBuilder.WriteString(s.generateMainPromptForUserQuery())
-	if userParseQuery.Ticker != "" {
-
-		//fetch fundamentals
-		fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker)
-		if err != nil {
-			return ""
-		}
-		promptBuilder.WriteString(fundamentalData)
-		//FetchNewsInsights
-		newsData, err := s.buildNewsWithPrompt(ctx, userParseQuery.Ticker)
-		if err != nil {
-			return ""
-		}
-		promptBuilder.WriteString(newsData)
-
-		//FetchReports
-		reports, err := s.buildResearchReportsWithPrompt(ctx, userParseQuery)
-		if err != nil {
-			return ""
-		}
-		promptBuilder.WriteString(reports)
-	}
-
+	fmt.Println(promptBuilder.String())
 	//sector has to add
 	return promptBuilder.String()
 }
@@ -406,20 +452,62 @@ func (s *ChatService) otherNotRelevantIntentFlow(ctx *fiber.Ctx) string {
 	return prompt
 }
 
-func (s *ChatService) buildFundamentaWithPrompt(ctx *fiber.Ctx, ticker string) (string, error) {
-	fundamentalResponse, err := s.FetchFundamentals(ctx, ticker)
-	if err != nil {
-		return "", err
+func (s *ChatService) buildFundamentaWithPrompt(ctx *fiber.Ctx, ticker string, fundamentalType string) (string, error) {
+
+	switch fundamentalType {
+	case "income_statement":
+		incomeStatementResponse, err := s.fmpApiClient.FetchIncomeStatementAPI(ctx.Context(), ticker, "annual")
+		if err != nil {
+			util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+			return "", err
+		}
+
+		fundamentalJsonData, err := json.Marshal(incomeStatementResponse)
+
+		prompt := fmt.Sprintf("Here’s the income statement data .\n\nData: %s", fundamentalJsonData)
+
+		return prompt, nil
+
+	case "balance_sheet":
+		balanceSheetResponse, err := s.fmpApiClient.FetchBalanceSheet(ctx.Context(), ticker, "annual")
+		if err != nil {
+			util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+			return "", err
+		}
+
+		balanceSheetJsonData, err := json.Marshal(balanceSheetResponse)
+
+		prompt := fmt.Sprintf("Here’s the balance sheet data .\n\nData: %s", balanceSheetJsonData)
+
+		return prompt, nil
+
+	case "cashflow_statement":
+		cashFlowResponse, err := s.fmpApiClient.FetchCashFlowStatement(ctx.Context(), ticker, "annual")
+		if err != nil {
+			util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+			return "", err
+		}
+		cashFlowJsonData, err := json.Marshal(cashFlowResponse)
+
+		prompt := fmt.Sprintf("Here’s the cash flow statement data .\n\nData: %s", cashFlowJsonData)
+
+		return prompt, nil
+
+	case "financial_ratios":
+		financialRatioResponse, err := s.fmpApiClient.FetchFinancialsRatio(ctx.Context(), ticker, "annual")
+		if err != nil {
+			util.WithContext(ctx.Context()).Errorf("[ChatService] Failed to process chat request. err: %v", err)
+			return "", err
+		}
+
+		financialRatioJsonData, err := json.Marshal(financialRatioResponse)
+
+		prompt := fmt.Sprintf("Here’s the financial ratio data .\n\nData: %s", financialRatioJsonData)
+
+		return prompt, nil
 	}
 
-	fundamentalJsonData, err := json.Marshal(fundamentalResponse)
-	if err != nil {
-		return "", err
-	}
-
-	prompt := fmt.Sprintf("Here’s the fundamental data, including revenue, profit, debt, and key ratios (P/E, ROE, etc.). Analyze the data and identify any notable trends in the company's performance.\n\nData: %s", fundamentalJsonData)
-
-	return prompt, nil
+	return "none", nil
 }
 
 func (s *ChatService) buildNewsWithPrompt(ctx *fiber.Ctx, ticker string) (string, error) {
