@@ -267,7 +267,6 @@ func (s *ChatService) fetchParseUserQuery(ctx *fiber.Ctx, userQuery string) (mod
 		cleanedContent = strings.TrimSuffix(cleanedContent, "```")
 	}
 
-	fmt.Println(cleanedContent)
 	err = json.Unmarshal([]byte(cleanedContent), &response)
 	if err != nil {
 		return response, fmt.Errorf("[fetchParseUserQuery] failed to parse res with err %v", err)
@@ -277,7 +276,7 @@ func (s *ChatService) fetchParseUserQuery(ctx *fiber.Ctx, userQuery string) (mod
 
 func (s *ChatService) generateUserQueryParsePrompt(userQuery string) string {
 	return fmt.Sprintf("Given the user query, extract the following information:\n"+
-		"- intent (BUY, SELL, RESEARCH, OTHER); OTHER if unrelated to stock market, finance, investment,stock market knowledge or wealth;\n"+
+		"- intent (BUY, SELL, RESEARCH, OTHER); consider RESEARCH for general investment advice or exploration; OTHER if completely unrelated to stock market, finance, or wealth;\n"+
 		"- ticker (Nasdaq stock ticker, if present)\n"+
 		"- company name (the name of the company associated with the ticker, if present)\n"+
 		"- amount (any mentioned amount)\n"+
@@ -388,7 +387,6 @@ func (s *ChatService) researchIntentFlow(ctx *fiber.Ctx, userParseQuery models.U
 	if userParseQuery.Ticker != "" {
 
 		//fetch fundamentals
-
 		if strings.Contains(userParseQuery.InfoType, "income_statement") {
 			fundamentalData, err := s.buildFundamentaWithPrompt(ctx, userParseQuery.Ticker, "income_statement")
 			if err != nil {
