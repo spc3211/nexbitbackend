@@ -523,7 +523,7 @@ func (s *ChatService) buildNewsWithPrompt(ctx *fiber.Ctx, ticker string) (string
 		return "", err
 	}
 
-	prompt := fmt.Sprintf("Here’s the latest news summary related to %s. Analyze the news and explain how it might impact the company’s stock performance or the broader market.\n\nNews Summary: %s", ticker, fundamentalJsonData)
+	prompt := fmt.Sprintf("Here’s the latest news summary related to %s. Analyze the news and explain how it might impact the company’s stock performance or the broader market.\n\nNews Summary: %s", ticker, string(fundamentalJsonData))
 	return prompt, nil
 }
 
