@@ -29,6 +29,7 @@ func (c *NewsApiClient) FetchNewsInsights(ctx context.Context, ticker string) (m
 	url := fmt.Sprintf("%squery?function=NEWS_SENTIMENT&tickers=%s&limit=5&time_from=%s&apikey=%s",
 		BASE_URL, ticker, timeTwoMonthsAgo, API_TOKEN)
 
+	fmt.Println("calling news api");
 	data, err := c.httpClient.Get(ctx, url, nil)
 
 	if err != nil {
@@ -42,6 +43,7 @@ func (c *NewsApiClient) FetchNewsInsights(ctx context.Context, ticker string) (m
 		fmt.Println("Error unmarshaling JSON:", unmarshalErr)
 		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", unmarshalErr)
 	}
+	fmt.Println("######## done unmarshalling ########",response);
 
 	var filteredNews []models.FilteredNewsItem
 	for _, result := range response.Feed {
