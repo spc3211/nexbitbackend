@@ -4,6 +4,9 @@ import (
 	requesthandler "nexbit/internal/handler/requesthandler"
 	chatService "nexbit/internal/service"
 
+	"net/http"
+	"io"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,4 +19,21 @@ func ChatRouter(app *fiber.App, chatService *chatService.ChatService) {
 	api.Get("/stock/get-fundamentals", handler.FundamentalHandler)
 	api.Post("/stock/save-reports", handler.FileUploadHandler)
 	api.Post("/chat/ask", handler.UserQueryHandler)
+
+	api.Get("/debug", func(c *fiber.Ctx) error {
+		url := "https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=TSLA&limit=5&time_from=20240915T2011&apikey=DKDZ0ROVXLKKDIJ7"
+		resp, err := http.Get(url)
+		if err != nil {
+			// Respond with error message
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error: %v", err))
+		}
+		defer resp.Body.Close()
+
+		// Read the response body
+		body, _ := io.ReadAll(resp.Body)
+
+		// Respond with the API response
+		return c.SendString(string(body))
+	})
+	
 }
