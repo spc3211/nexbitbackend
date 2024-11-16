@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const API_TOKEN = "DKDZ0ROVXLKKDIJ7"
+const API_TOKEN = "JF509SILZGIN3B5O"
 const BASE_URL = "https://www.alphavantage.co/"
 
 type NewsApiClient struct {
