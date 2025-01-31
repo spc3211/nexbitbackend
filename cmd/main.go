@@ -56,19 +56,19 @@ func main() {
 	connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
 		user, dbname, password, host, port, sslmode)
 
-	dbService, err := repo.NewDBService(connStr)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// dbService, err := repo.NewDBService(connStr)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
 
-	err = dbService.Ping()
-	if err != nil {
-		log.Fatalf("Error connecting to the database: %v\n", err)
-	} else {
-		fmt.Println("Successfully connected to the PostgreSQL database!")
-	}
+	// err = dbService.Ping()
+	// if err != nil {
+	// 	log.Fatalf("Error connecting to the database: %v\n", err)
+	// } else {
+	// 	fmt.Println("Successfully connected to the PostgreSQL database!")
+	// }
 
-	defer dbService.Close()
+	// defer dbService.Close()
 
 	openaiClient := openai.NewClient(openAiApiKey)
 
