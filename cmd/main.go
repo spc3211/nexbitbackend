@@ -46,7 +46,10 @@ func main() {
 	dbname := os.Getenv("DB_NAME")
 	password := os.Getenv("DB_PASSWORD")
 	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3001"
+	}
 	sslmode := os.Getenv("DB_SSLMODE")
 	openAiApiKey := os.Getenv("OPENAI_API_KEY")
 
@@ -79,7 +82,7 @@ func main() {
 	router.ChatRouter(app, chatService)
 	router.OnboardingRouter(app, onboardingService)
 
-	if err := app.Listen(":3002"); err != nil {
+	if err := app.Listen(":" + port); err != nil {
 		fmt.Println("Error starting server:", err)
 	}
 }
