@@ -2,11 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
-
-	"nexbit/internal/repo"
 	router "nexbit/internal/router/v1"
 	service "nexbit/internal/service"
 
@@ -42,19 +39,19 @@ func main() {
 	// Loads the .env file
 	_ = godotenv.Load()
 
-	user := os.Getenv("DB_USER")
-	dbname := os.Getenv("DB_NAME")
-	password := os.Getenv("DB_PASSWORD")
-	host := os.Getenv("DB_HOST")
+	// user := os.Getenv("DB_USER")
+	// dbname := os.Getenv("DB_NAME")
+	// password := os.Getenv("DB_PASSWORD")
+	// host := os.Getenv("DB_HOST")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
 	}
-	sslmode := os.Getenv("DB_SSLMODE")
+	// sslmode := os.Getenv("DB_SSLMODE")
 	openAiApiKey := os.Getenv("OPENAI_API_KEY")
 
-	connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
-		user, dbname, password, host, port, sslmode)
+	// connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
+	// 	user, dbname, password, host, port, sslmode)
 
 	// dbService, err := repo.NewDBService(connStr)
 	// if err != nil {
